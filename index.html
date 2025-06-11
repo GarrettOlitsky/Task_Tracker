@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Advanced Task Tracker</title>
+  <style>
+    body {
+      background-color: black;
+      color: limegreen;
+      font-family: monospace;
+      padding: 20px;
+    }
+    .task {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 5px;
+      border-bottom: 1px solid limegreen;
+    }
+    .overdue {
+      color: red;
+    }
+    .hidden {
+      display: none;
+    }
+    button {
+      background-color: limegreen;
+      color: black;
+      border: none;
+      padding: 5px;
+      margin: 5px;
+      cursor: pointer;
+    }
+    #clock {
+      font-size: 20px;
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Task Tracker (Minimalist Green/Black)</h1>
+  <div id="clock"></div>
+  
+  <h3>Create Task</h3>
+  <input type="text" id="taskInput" placeholder="New Task">
+  <input type="datetime-local" id="dueTime">
+  <input type="text" id="assignedTo" placeholder="Assign to (name)">
+  <button onclick="addTask()">Add Task</button>
+
+  <h3>Tasks</h3>
+  <div id="taskList"></div>
+
+  <script>
+    let tasks = [];
+
+    function updateClock() {
+      const now = new Date();
+      document.getElementById('clock').innerText = now.toLocaleTimeString();
+    }
+    setInterval(updateClock, 1000);
+
+    function addTask() {
+      const taskText = document.getElementById('taskInput').value;
+      const dueTime = new Date(document.getElementById('dueTime').value);
+      const assignedTo = document.getElementById('assignedTo').value;
+      
+      const task = {
+        text: taskText,
+        due: dueTime,
+        assigned: assignedTo,
+        done: false
+      };
+
+      tasks.push(task);
+      renderTasks();
+    }
+
+    function renderTasks() {
+      const list = document.getElementById('taskList');
+      list.innerHTML = '';
+      const now = new Date();
+
+      tasks.forEach((task, index) => {
+        const taskDiv = document.createElement('div');
+        taskDiv.className = 'task';
+
+        if (!task.done && now > task.due) {
+          taskDiv.classList.add('overdue');
+        }
+
+        taskDiv.innerHTML = `
+          <span>${task.text} (Due: ${task.due.toLocaleString()}) Assigned: ${task.assigned}</span>
+          <input type="checkbox" onclick="markDone(${index})" ${task.done ? 'checked' : ''}>
+        `;
+
+        list.appendChild(taskDiv);
+      });
+    }
+
+    function markDone(index) {
+      tasks[index].done = !tasks[index].done;
+      renderTasks();
+    }
+  </script>
+</body>
+</html>
