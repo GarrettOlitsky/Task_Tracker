@@ -138,11 +138,9 @@
     setInterval(updateClock, 1000);
     updateClock();
 
-    // Load data from localStorage on startup
     function loadData() {
       users = JSON.parse(localStorage.getItem('users')) || [];
       tasks = JSON.parse(localStorage.getItem('tasks')) || [];
-
       populateUserDropdown();
       renderTasks();
     }
@@ -246,7 +244,14 @@
             <span class="task-meta">Assigned to: ${task.assigned}</span>
             <span class="priority-label ${priorityClass}">${task.priority} Priority</span>
           </div>
-          <input type="checkbox" onchange="toggleDone(${index})" ${task.done ? 'checked' : ''} title="Mark completed">
+          ${
+            task.done
+              ? `<div>
+                   <input type="checkbox" onchange="toggleDone(${index})" checked title="Mark incomplete">
+                   <button onclick="deleteTask(${index})" style="margin-left: 10px;">🗑️</button>
+                 </div>`
+              : `<input type="checkbox" onchange="toggleDone(${index})" title="Mark completed">`
+          }
         `;
 
         if (task.done) {
@@ -263,9 +268,15 @@
       renderTasks();
     }
 
+    function deleteTask(index) {
+      if (confirm("Are you sure you want to delete this task?")) {
+        tasks.splice(index, 1);
+        saveData();
+        renderTasks();
+      }
+    }
+
     loadData();
   </script>
 </body>
 </html>
-
-
