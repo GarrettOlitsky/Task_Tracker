@@ -1,1 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Advanced Task Tracker</title>
+  <style>
+    body {
+      background-color: black;
+      color: limegreen;
+      font-family: monospace;
+      padding: 20px;
+    }
+    h1, h3 {
+      margin-bottom: 10px;
+    }
+    input, select, button {
+      background-color: black;
+      color: limegreen;
+      border: 1px solid limegreen;
+      padding: 6px;
+      margin: 5px 0 15px 0;
+      font-family: monospace;
+      font-size: 1em;
+      border-radius: 4px;
+    }
+    button {
+      cursor: pointer;
+      border: 2px solid limegreen;
+      transition: background-color 0.3s, color 0.3s;
+    }
+    button:hover {
+      background-color: limegreen;
+      color: black;
+    }
+
+    #clock {
+      font-size: 20px;
+      margin-bottom: 20px;
+    }
+
+    .task {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px;
+      border: 1px solid limegreen;
+      border-radius: 8px;
+      margin-bottom: 12px;
+      min-height: 70px;
+      font-size: 1em;
+    }
+    .task-info {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      max-width: 80%;
+    }
+    .task-text {
+      font-weight: bold;
+      font-size: 1.1em;
+    }
+    .task-meta {
+      font-size: 0.85em;
+      color: #a1e6a1;
+    }
+    .overdue {
+      color: #ff6666;
+      border-color: #ff6666;
+    }
+    .priority-label {
+      font-weight: bold;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 0.85em;
+      width: fit-content;
+      text-transform: uppercase;
+    }
+    .priority-high {
+      background-color: #ff4444;
+      color: black;
+    }
+    .priority-medium {
+      background-color: #ffbb33;
+      color: black;
+    }
+    .priority-low {
+      background-color: #44ff44;
+      color: black;
+    }
+
+    .section {
+      margin-bottom: 50px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Task Tracker</h1>
+  <div id="clock"></div>
+
+  <div class="section">
+    <h3>Create Task</h3>
+    <input type="text" id="taskInput" placeholder="New Task" />
+    <input type="datetime-local" id="dueTime" />
+    <br />
+    <select id="assignedToDropdown">
+      <option value="" disabled selected>Assign to (select or type new)</option>
+    </select>
+    <input type="text" id="assignedToInput" placeholder="Or add new user" />
+    <br />
+    <select id="prioritySelect">
+      <option value="Low" selected>Low Priority</option>
+      <option value="Medium">Medium Priority</option>
+      <option value="High">High Priority</option>
+    </select>
+    <br />
+    <button onclick="addTask()">Add Task</button>
+  </div>
+
+  <div class="section">
+    <h3>Tasks</h3>
+    <div id="taskList"></div>
+  </div>
+
+  <div class="section" style="margin-top: 75px;">
+    <h3>Completed Tasks</h3>
+    <div id="completedTaskList"></div>
+  </div>
+
+  <script>
+    let tasks = [];
+    let users = [];
+
+    function updateClock() {
+      const now = new Date();
+      document.getElementById('clock').innerText = now.toLocaleTimeString();
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    // Load data from localStorage on startup
+    function loadData() {
+      users = JSON.parse(localStorage.getItem('users')) || [];
+      tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+
+      populateUserDropdown();
+      renderTasks();
+    }
+
+    function saveData() {
+      localStorage.setItem('users', JSON.stringify(users));
+      localStorage.setItem('tasks', JSON.stringify(tasks));
+    }
+
+    function populateUserDropdown() {
+      const dropdown = document.getElementById('assignedToDropdown');
+      dropdown.innerHTML = '<option value="" disabled selected>Assign to (select or type new)</option>';
+      users.forEach(user => {
+        const option = document.createElement('option');
+        option.value = user;
+        option.textContent = user;
+        dropdown.appendChild(option);
+      });
+    }
+
+    function addUserIfNew(name) {
+      name = name.trim();
+      if (name && !users.includes(name)) {
+        users.push(name);
+        populateUserDropdown();
+        saveData();
+      }
+    }
+
+    function addTask() {
+      const taskText = document.getElementById('taskInput').value.trim();
+      const dueTimeRaw = document.getElementById('dueTime').value;
+      const assignedSelect = document.getElementById('assignedToDropdown');
+      const assignedInput = document.getElementById('assignedToInput').value.trim();
+      const priority = document.getElementById('prioritySelect').value;
+
+      if (!taskText) {
+        alert('Please enter a task.');
+        return;
+      }
+      if (!dueTimeRaw) {
+        alert('Please select a due date and time.');
+        return;
+      }
+
+      let assignedTo = assignedSelect.value;
+      if (!assignedTo && assignedInput) {
+        assignedTo = assignedInput;
+        addUserIfNew(assignedTo);
+      }
+      if (!assignedTo) assignedTo = "Unassigned";
+
+      const dueTime = new Date(dueTimeRaw);
+      const task = {
+        text: taskText,
+        due: dueTime.toISOString(),
+        assigned: assignedTo,
+        done: false,
+        priority: priority
+      };
+
+      tasks.push(task);
+      saveData();
+      clearInputs();
+      renderTasks();
+    }
+
+    function clearInputs() {
+      document.getElementById('taskInput').value = '';
+      document.getElementById('dueTime').value = '';
+      document.getElementById('assignedToInput').value = '';
+      document.getElementById('assignedToDropdown').selectedIndex = 0;
+      document.getElementById('prioritySelect').value = 'Low';
+    }
+
+    function renderTasks() {
+      const list = document.getElementById('taskList');
+      const completedList = document.getElementById('completedTaskList');
+      list.innerHTML = '';
+      completedList.innerHTML = '';
+      const now = new Date();
+
+      tasks.forEach((task, index) => {
+        const taskDiv = document.createElement('div');
+        taskDiv.className = 'task';
+
+        if (!task.done && new Date(task.due) < now) {
+          taskDiv.classList.add('overdue');
+        }
+
+        // Priority class
+        let priorityClass = '';
+        if (task.priority === 'High') priorityClass = 'priority-high';
+        else if (task.priority === 'Medium') priorityClass = 'priority-medium';
+        else priorityClass = 'priority-low';
+
+        taskDiv.innerHTML = `
+          <div class="task-info">
+            <span class="task-text">${task.text}</span>
+            <span class="task-meta">Due: ${new Date(task.due).toLocaleString()}</span>
+            <span class="task-meta">Assigned to: ${task.assigned}</span>
+            <span class="priority-label ${priorityClass}">${task.priority} Priority</span>
+          </div>
+          <input type="checkbox" onchange="toggleDone(${index})" ${task.done ? 'checked' : ''} title="Mark completed">
+        `;
+
+        if (task.done) {
+          completedList.appendChild(taskDiv);
+        } else {
+          list.appendChild(taskDiv);
+        }
+      });
+    }
+
+    function toggleDone(index) {
+      tasks[index].done = !tasks[index].done;
+      saveData();
+      renderTasks();
+    }
+
+    loadData();
+  </script>
+</body>
+</html>
 
